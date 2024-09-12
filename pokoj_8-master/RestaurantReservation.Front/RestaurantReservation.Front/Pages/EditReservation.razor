@@ -1,0 +1,62 @@
+@page "/edit-reservation/{id:int}"
+@using RestaurantReservation.Front.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Reservation? reservation;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReservation();
+    }
+
+    private async Task LoadReservation()
+    {
+        var response = await Http.GetAsync($"http://localhost:14427/api/Reservation/{Id}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            reservation = await response.Content.ReadFromJsonAsync<Reservation>();
+        }
+    }
+
+    private async Task SaveChanges()
+    {
+        var response = await Http.PutAsJsonAsync($"http://localhost:14427/api/Reservation/{reservation.Id}", reservation);
+        if (response.IsSuccessStatusCode)
+        {
+            Navigation.NavigateTo("/main");
+        }
+        else
+        {
+            // Obsługa błędu (opcjonalnie)
+            Console.WriteLine("Błąd");
+        }
+    }
+}
+
+<h3>Edycja Rezerwacji</h3>
+@if (reservation is null)
+{
+<p><em>Ładowanie...</em></p>
+}
+else
+{
+    <EditForm Model="@reservation" OnValidSubmit="SaveChanges">
+        <div class="form-group">
+            <label for="date">Data:</label>
+            <InputDate id="date" class="form-control" @bind-Value="reservation.ReservationDate" />
+        </div>
+        <div class="form-group">
+            <label for="people">Ilość osób:</label>
+            <InputNumber id="people" class="form-control" @bind-Value="reservation.NumberOfPeople" />
+        </div>
+        <div class="form-group">
+            <label for="preferences">Preferencje:</label>
+            <InputText id="preferences" class="form-control" @bind-Value="reservation.Preferences" />
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </EditForm>
+}

@@ -1,0 +1,105 @@
+@page "/main"
+@using RestaurantReservation.Front.Models
+@using RestaurantReservation.Front.Utils
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JsRuntime
+@using System.Text.Json
+
+
+
+<div class="d-flex justify-content-between align-items-center">
+	<h3>Main</h3>
+	<button class="btn btn-primary" @onclick="NavigateToCreateReservation">+ Dodaj nową rezerwację</button>
+</div>
+
+@if (Reservations is null)
+{
+	<p><em>Ładowanie...</em></p>
+}
+else
+{
+	<table class="table">
+		<thead>
+			<tr>
+				<th>Data</th>
+				<th>Ilość osób</th>
+				<th>Preferencje</th>
+				<th>Akcje</th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var reservation in Reservations)
+			{
+				<tr>
+					<td>@reservation.ReservationDate.ToShortDateString()</td>
+					<td>@reservation.NumberOfPeople</td>
+					<td>@reservation.Preferences</td>
+					<td>
+						<button class="btn btn-sm" @onclick="() => DeleteReservation(reservation.Id)">
+							&#x2716;
+						</button>
+						<button class="btn btn-sm" @onclick="() => EditReservation(reservation.Id)">
+							&#x270E;
+						</button>
+					</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}
+
+@code {
+	public Reservation[]? Reservations;
+
+	protected override async Task OnInitializedAsync()
+	{
+		await LoadReservations();
+	}
+
+	private async Task LoadReservations()
+	{
+		var cookieValue = await JsRuntime.InvokeAsync<string>("getCookie", ["loggedInUser"]);
+
+		if (!string.IsNullOrEmpty(cookieValue))
+		{
+			var user = JsonSerializer.Deserialize<User>(cookieValue);
+
+
+			var response = await Http.GetAsync($"http://localhost:14427/api/Reservation/user/{user.Id}");
+
+			if (response.IsSuccessStatusCode)
+			{
+				Reservations = await response.Content.ReadFromJsonAsync<Reservation[]>();
+			}
+		}
+
+
+	}
+
+	private async Task DeleteReservation(int id)
+	{
+		var response = await Http.DeleteAsync($"http://localhost:14427/api/Reservation/{id}");
+
+		if (response.IsSuccessStatusCode)
+		{
+			await LoadReservations();
+
+			StateHasChanged();
+		}
+		else
+		{
+			Console.WriteLine("Nie udało się usunąć rezerwacji");
+		}
+	}
+
+	private void EditReservation(int reservationId)
+	{
+		Navigation.NavigateTo($"{PagesUrls.EditReservation}/{reservationId}");
+	}
+
+	private void NavigateToCreateReservation()
+	{
+		Navigation.NavigateTo(PagesUrls.NewReservation);
+	}
+}

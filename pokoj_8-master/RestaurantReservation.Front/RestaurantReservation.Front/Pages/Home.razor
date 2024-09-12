@@ -1,0 +1,36 @@
+﻿@page "/"
+@using System.Text.Json
+@using RestaurantReservation.Front.Models
+@using RestaurantReservation.Front.Utils
+@inject IJSRuntime JsRuntime
+@inject NavigationManager Navigation
+
+<PageTitle>Home</PageTitle>
+
+<h1>Hello, world!</h1>
+
+Welcome to your new app.
+
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUser();
+    }
+
+    private async Task LoadUser()
+    {
+        var cookieValue = await JsRuntime.InvokeAsync<string>("getCookie", ["loggedInUser"]);
+
+        if (!string.IsNullOrEmpty(cookieValue))
+        {
+            var user = JsonSerializer.Deserialize<User>(cookieValue);
+            Navigation.NavigateTo(PagesUrls.Main);
+        }
+        else
+        {
+            Navigation.NavigateTo(PagesUrls.Login);
+        }
+    }
+
+}
